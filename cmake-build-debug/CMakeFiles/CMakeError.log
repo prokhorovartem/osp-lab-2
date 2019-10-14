@@ -1,0 +1,13 @@
+Determining if the C compiler works failed with the following output:
+Change Dir: C:/CLionProjects/lab0/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/PROGRA~2/MINGW-~1/I686-8~1.0-P/mingw32/bin/mingw32-make.exe cmTC_888c5/fast 
+C:/PROGRA~2/MINGW-~1/I686-8~1.0-P/mingw32/bin/mingw32-make.exe -f CMakeFiles\cmTC_888c5.dir\build.make CMakeFiles/cmTC_888c5.dir/build
+mingw32-make.exe[1]: Entering directory 'C:/CLionProjects/lab0/cmake-build-debug/CMakeFiles/CMakeTmp'
+process_begin: CreateProcess(NULL, C:\Users\╨Р╤А╤В╤С╨╝\AppData\Local\JetBrains\Toolbox\apps\CLion\ch-0\192.6603.37\bin\cmake\win\bin\cmake.exe -E cmake_echo_color --switch= --progress-dir=C:\CLionProjects\lab0\cmake-build-debug\CMakeFiles\CMakeTmp\CMakeFiles --progress-num=1 "Building C object CMakeFiles/cmTC_888c5.dir/testCCompiler.c.obj", ...) failed.
+make (e=2): ═х єфрхЄё  эрщЄш єърчрээ√щ Їрщы.
+mingw32-make.exe[1]: *** [CMakeFiles\cmTC_888c5.dir\build.make:64: CMakeFiles/cmTC_888c5.dir/testCCompiler.c.obj] Error 2
+mingw32-make.exe[1]: Leaving directory 'C:/CLionProjects/lab0/cmake-build-debug/CMakeFiles/CMakeTmp'
+mingw32-make.exe: *** [Makefile:120: cmTC_888c5/fast] Error 2
+
+
