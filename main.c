@@ -7,13 +7,16 @@
 
 bool isNumberWithThreeDigits(char *string);
 
-int getModeInSymbolicStyle(char *string);
+int getModeInSymbolicStyle(char *string, mode_t permissions);
 
 int countRights(const char *permission);
+
+mode_t getPermissions(char *file);
 
 int main(int argc, char **argv) {
 
     bool isForce = false;
+    bool isDigitalFormat = false;
 
     if (argc < 2) {
         perror("Number of arguments can't be less than 2");
@@ -46,13 +49,17 @@ int main(int argc, char **argv) {
     }
 
     if (isNumberWithThreeDigits(argv[modeIndex])) {
+        isDigitalFormat = true;
         mode = (argv[modeIndex][0] - '0') * 64 | (argv[modeIndex][1] - '0') * 8 | (argv[modeIndex][2] - '0');
-    } else {
-        mode = getModeInSymbolicStyle(argv[modeIndex]);
     }
 
-    for (int i = ++modeIndex; i < argc; ++i) {
-        chmod(argv[i], mode);
+    for (int i = modeIndex + 1; i < argc; ++i) {
+        if (isDigitalFormat) {
+            chmod(argv[i], mode);
+        } else {
+            mode = getModeInSymbolicStyle(argv[modeIndex], getPermissions(argv[i]));
+            chmod(argv[i], mode);
+        }
     }
 
 }
@@ -73,18 +80,18 @@ bool isNumberWithThreeDigits(char *string) {
     return true;
 }
 
-int getModeInSymbolicStyle(char *string) {
+int getModeInSymbolicStyle(char *string, mode_t permissions) {
     int length = strlen(string), counter = 0;
     int userMode = 0, groupMode = 0, otherMode = 0;
-    char who[3], operation[1], permission[3];
+    char who[3], operation = 0, permission[3];
 
     for (int i = 0; i < length; i++) {
         if (string[i] == 'u' || string[i] == 'g' || string[i] == 'o') {
             who[i] = string[i];
             continue;
         }
-        if (string[i] == '=') {
-            operation[0] = string[i];
+        if (string[i] == '=' || string[i] == '-' || string[i] == '+') {
+            operation = string[i];
             continue;
         }
         if (string[i] == 'r' || string[i] == 'w' || string[i] == 'x') {
@@ -93,21 +100,55 @@ int getModeInSymbolicStyle(char *string) {
         }
     }
 
-    for (int j = 0; j < 3; ++j) {
-        switch (who[j]) {
-            case 'u':
-                userMode = countRights(permission);
-                break;
-            case 'g':
-                groupMode = countRights(permission);
-                break;
-            case 'o':
-                otherMode = countRights(permission);
-                break;
-        }
+    switch (operation) {
+        case '=':
+            for (int j = 0; j < 3; ++j) {
+                switch (who[j]) {
+                    case 'u':
+                        userMode = countRights(permission);
+                        break;
+                    case 'g':
+                        groupMode = countRights(permission);
+                        break;
+                    case 'o':
+                        otherMode = countRights(permission);
+                        break;
+                }
+            }
+            return userMode * 64 | groupMode * 8 | otherMode;
+        case '+':
+            for (int j = 0; j < 3; ++j) {
+                switch (who[j]) {
+                    case 'u':
+                        userMode = countRights(permission);
+                        break;
+                    case 'g':
+                        groupMode = countRights(permission);
+                        break;
+                    case 'o':
+                        otherMode = countRights(permission);
+                        break;
+                }
+            }
+            return (permissions & 511) | userMode * 64 | groupMode * 32 | otherMode;
+        case '-':
+            for (int j = 0; j < 3; ++j) {
+                switch (who[j]) {
+                    case 'u':
+                        userMode = countRights(permission);
+                        break;
+                    case 'g':
+                        groupMode = countRights(permission);
+                        break;
+                    case 'o':
+                        otherMode = countRights(permission);
+                        break;
+                }
+            }
+            return (permissions & 511) & ~(userMode * 64) & ~(groupMode * 32) & ~(otherMode);
+        default:
+            return 0;
     }
-
-    return userMode * 64 | groupMode * 8 | otherMode;
 }
 
 int countRights(const char *permission) {
@@ -124,4 +165,10 @@ int countRights(const char *permission) {
         }
     }
     return rightsCounter;
+}
+
+mode_t getPermissions(char *file) {
+    struct stat st;
+    stat(file, &st);
+    return st.st_mode;
 }
