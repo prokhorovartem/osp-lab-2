@@ -13,13 +13,14 @@ int countRights(const char *permission);
 
 mode_t getPermissions(char *file);
 
+bool isForce = false;
+
 int main(int argc, char **argv) {
 
-    bool isForce = false;
     bool isDigitalFormat = false;
 
     if (argc < 2) {
-        perror("Number of arguments can't be less than 2");
+        perror(strerror(5));
     }
 
     int c;
@@ -55,10 +56,14 @@ int main(int argc, char **argv) {
 
     for (int i = modeIndex + 1; i < argc; ++i) {
         if (isDigitalFormat) {
-            chmod(argv[i], mode);
+            if (chmod(argv[i], mode) == -1 && isForce == false) {
+                perror(strerror(errno));
+            }
         } else {
             mode = getModeInSymbolicStyle(argv[modeIndex], getPermissions(argv[i]));
-            chmod(argv[i], mode);
+            if (chmod(argv[i], mode) == -1 && isForce == false) {
+                perror(strerror(errno));
+            }
         }
     }
 
@@ -169,6 +174,8 @@ int countRights(const char *permission) {
 
 mode_t getPermissions(char *file) {
     struct stat st;
-    stat(file, &st);
+    if (stat(file, &st) == -1 && isForce == false) {
+        perror(strerror(errno));
+    }
     return st.st_mode;
 }
