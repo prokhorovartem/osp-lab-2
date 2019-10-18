@@ -25,10 +25,6 @@ int main(int argc, char **argv) {
     bool isDigitalFormat = false;
     bool isRecursive = false;
 
-    if (argc < 2) {
-        perror(strerror(5));
-    }
-
     int c;
 
     while (1) {
@@ -62,6 +58,12 @@ int main(int argc, char **argv) {
         modeIndex++;
     }
 
+    if (argc < 2 + modeIndex) {
+        errno = EINVAL;
+        perror("Please, write at least two arguments");
+        exit(-1);
+    }
+
     if (isNumberWithThreeDigits(argv[modeIndex])) {
         isDigitalFormat = true;
         mode = (argv[modeIndex][0] - '0') * 64 | (argv[modeIndex][1] - '0') * 8 | (argv[modeIndex][2] - '0');
@@ -77,7 +79,7 @@ int main(int argc, char **argv) {
             }
         } else {
             mode = getModeInSymbolicStyle(argv[modeIndex], getPermissions(argv[i]));
-            if ( isRecursive == true && isDirectory(argv[i])) {
+            if (isRecursive == true && isDirectory(argv[i])) {
                 changeModeRecursively(argv[i], mode);
             }
             if (chmod(argv[i], mode) == -1 && isForce == false) {
@@ -94,7 +96,7 @@ void changeModeRecursively(char *string, int mode) {
     dir = opendir(string);
     if (dir) {
         while ((myFile = readdir(dir))) {
-            if(myFile->d_name[0] != '.') {
+            if (myFile->d_name[0] != '.') {
                 char dest[128];
                 strcpy(dest, string);
                 strcat(dest, "/");
@@ -107,14 +109,7 @@ void changeModeRecursively(char *string, int mode) {
                 }
             }
         }
-    } else if (errno == ENOENT)
-        puts("This directory does not exist.");
-    else if (errno == ENOTDIR)
-        puts("This file is not a directory.");
-    else if (errno == EACCES)
-        puts("You do not have the right to open this folder.");
-    else
-        puts("That's a new error, check the manual.");
+    }
 }
 
 bool isDirectory(char *path) {
@@ -134,7 +129,13 @@ bool isNumberWithThreeDigits(char *string) {
     }
 
     for (int i = 0; i < length; i++) {
-        if (!isdigit(string[i]) || string[i] == '8' || string[i] == '9') {
+        if (string[i] == '8' || string[i] == '9') {
+            errno = 5;
+            perror("Invalid mode");
+            exit(-1);
+            return false;
+        }
+        if (!isdigit(string[i])) {
             return false;
         }
     }
@@ -191,7 +192,7 @@ int getModeInSymbolicStyle(char *string, mode_t permissions) {
                         break;
                 }
             }
-            return (permissions & 511) | userMode * 64 | groupMode * 32 | otherMode;
+            return (permissions & 511) | userMode * 64 | groupMode * 8 | otherMode;
         case '-':
             for (int j = 0; j < 3; ++j) {
                 switch (who[j]) {
@@ -206,7 +207,7 @@ int getModeInSymbolicStyle(char *string, mode_t permissions) {
                         break;
                 }
             }
-            return (permissions & 511) & ~(userMode * 64) & ~(groupMode * 32) & ~(otherMode);
+            return (permissions & 511) & ~(userMode * 64) & ~(groupMode * 8) & ~(otherMode);
         default:
             return 0;
     }
