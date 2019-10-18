@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <stdbool.h>
+#include <dirent.h>
 
 bool isNumberWithThreeDigits(char *string);
 
@@ -13,11 +14,16 @@ int countRights(const char *permission);
 
 mode_t getPermissions(char *file);
 
+bool isDirectory(char *string);
+
+void changeModeRecursively(char *string, int i);
+
 bool isForce = false;
 
 int main(int argc, char **argv) {
 
     bool isDigitalFormat = false;
+    bool isRecursive = false;
 
     if (argc < 2) {
         perror(strerror(5));
@@ -31,7 +37,7 @@ int main(int argc, char **argv) {
                 {"f", no_argument, 0, 0},
         };
 
-        c = getopt_long(argc, argv, "f",
+        c = getopt_long(argc, argv, "fR",
                         long_options, &option_index);
         if (c == -1)
             break;
@@ -39,6 +45,9 @@ int main(int argc, char **argv) {
         switch (c) {
             case 'f':
                 isForce = true;
+                break;
+            case 'R':
+                isRecursive = true;
                 break;
         }
     }
@@ -49,6 +58,10 @@ int main(int argc, char **argv) {
         modeIndex++;
     }
 
+    if (isRecursive) {
+        modeIndex++;
+    }
+
     if (isNumberWithThreeDigits(argv[modeIndex])) {
         isDigitalFormat = true;
         mode = (argv[modeIndex][0] - '0') * 64 | (argv[modeIndex][1] - '0') * 8 | (argv[modeIndex][2] - '0');
@@ -56,17 +69,60 @@ int main(int argc, char **argv) {
 
     for (int i = modeIndex + 1; i < argc; ++i) {
         if (isDigitalFormat) {
+            if (isRecursive == true && isDirectory(argv[i])) {
+                changeModeRecursively(argv[i], mode);
+            }
             if (chmod(argv[i], mode) == -1 && isForce == false) {
                 perror(strerror(errno));
             }
         } else {
             mode = getModeInSymbolicStyle(argv[modeIndex], getPermissions(argv[i]));
+            if ( isRecursive == true && isDirectory(argv[i])) {
+                changeModeRecursively(argv[i], mode);
+            }
             if (chmod(argv[i], mode) == -1 && isForce == false) {
                 perror(strerror(errno));
             }
         }
     }
 
+}
+
+void changeModeRecursively(char *string, int mode) {
+    DIR *dir;
+    struct dirent *myFile;
+    dir = opendir(string);
+    if (dir) {
+        while ((myFile = readdir(dir))) {
+            if(myFile->d_name[0] != '.') {
+                char dest[128];
+                strcpy(dest, string);
+                strcat(dest, "/");
+                strcat(dest, myFile->d_name);
+                if (isDirectory(dest)) {
+                    changeModeRecursively(dest, mode);
+                }
+                if (chmod(dest, mode) == -1 && isForce == false) {
+                    perror(strerror(errno));
+                }
+            }
+        }
+    } else if (errno == ENOENT)
+        puts("This directory does not exist.");
+    else if (errno == ENOTDIR)
+        puts("This file is not a directory.");
+    else if (errno == EACCES)
+        puts("You do not have the right to open this folder.");
+    else
+        puts("That's a new error, check the manual.");
+}
+
+bool isDirectory(char *path) {
+    struct stat st;
+    if (stat(path, &st) == -1 && isForce == false) {
+        perror(strerror(errno));
+    }
+    return S_ISDIR(st.st_mode);
 }
 
 bool isNumberWithThreeDigits(char *string) {
